@@ -56,7 +56,7 @@ select option in "Create database" "List database" "Connect to database" "Drop d
             elif [[ $connectdb = "exit" ]]; then
                 break
             else
-
+            
                 ### Table options and settings ###
                 select choice in "Create table" "List tables" "Drop table" "Insert into table" "Select from table" "Delete from table" "Update table" "Exit"; do
                     case $REPLY in
@@ -134,25 +134,30 @@ select option in "Create database" "List database" "Connect to database" "Drop d
                                 done
                             fi
                         done
-
+                        
                         ;;
 
-                    2) ### Table Option 2: List tables ###
 
-                        ls $HOME/database/$connectdb
-                        ;;
 
-                    3) ### Table Option 3: Drop table ###
-                        ls $HOME/database/$connectdb
-                        echo "Table name to drop: "
-                        read tablename
-                        if [ -f $HOME/database/$connectdb/$tablename ]; then
-                            rm $HOME/database/$connectdb/$tablename
-                            echo "Table $tablename is dropped successfully"
-                        else
-                            echo "Table doesn't exist"
-                        fi
-                        ;;
+ 			
+ 			2) ### Table Option 2: List tables ###
+ 			
+                    	ls $HOME/database/$connectdb
+ 			;;
+ 			
+ 			
+ 			3) ### Table Option 3: Drop table ###
+ 			ls $HOME/database/$connectdb
+    			echo "Table name to drop: "
+    			read tablename
+    			if [ -f $HOME/database/$connectdb/$tablename ]
+    			then
+        			rm $HOME/database/$connectdb/$tablename 
+        			echo "Table $tablename is dropped successfully"
+    			else
+        		echo "Table doesn't exist"
+    			fi	
+ 			;;
                     4) ### Table Option 4: Insert into table ###
                         ######### Validate inserted data type function ############
                         matchdatatype() {
@@ -286,31 +291,35 @@ select option in "Create database" "List database" "Connect to database" "Drop d
                             fi
                         done
                         ;;
-                    6) ### Table Option 6: Delete from table ###
-                        echo "Enter the table name to delete from: "
-                        read tablename
+			6) ### Table Option 6: Delete from table ###
+                    	echo "Enter the table name to delete from: "
+    			read tablename
 
-                        if [ -f $HOME/database/$connectdb/$tablename ]; then
-                            echo "Enter the primary key value of the record you want to delete:"
-                            read primaryKey
+    			if [ -f $HOME/database/$connectdb/$tablename ]
+    			then
+        			echo "Enter the primary key value of the record you want to delete:"
+        			read primaryKey
 
-                            if [ ! -z $primaryKey ]; then
-                                echo "$(awk 'BEGIN{FS=":"} {print $1}' "$HOME/database/$connectdb/$tablename" | grep "\b$primaryKey\b")"
-                                if [[ $primaryKey = "$(awk 'BEGIN{FS=":"} {print $1}' "$HOME/database/$connectdb/$tablename" | grep "\b$primaryKey\b")" ]]; then
-                                    NR=$(awk 'BEGIN{FS="|"}{if ($1=="'$primaryKey'") print NR}' "$HOME/database/$connectdb/$tablename")
-                                    sed -i ''$NR'd' "$HOME/database/$connectdb/$tablename"
-                                    echo "Record deleted successfully"
-                                else
-                                    echo "Primary key not exist!"
-                                fi
-                            else
-                                echo "Primary key not inserted!"
-                            fi
-                        else
-                            echo "Table $HOME/database/$connectdb/$tablename doesn't exist!"
-                        fi
-                        ;;
-                    7) ### Table Option 7: Update table ###                    
+        		if [ ! -z $primaryKey ]
+        		then
+                                selectedline=$(awk -F: -v pk=$primaryKey 'NR>2{ if($1==pk) print NR}' $HOME/database/$connectdb/$tablename )
+
+            			if [[ $selectedline ]]
+            			then
+                			sed -i ''$selectedline'd' "$HOME/database/$connectdb/$tablename"
+                			echo "Record deleted successfully"
+            			else
+                			echo "Primary key not exist!"
+            			fi
+        		else
+            			echo "Primary key not inserted!"
+        		fi    
+    			else
+        			echo "Table $HOME/database/$connectdb/$tablename doesn't exist!"
+    			fi
+    			;;
+                    7) ### Table Option 7: Update table ###
+                    
                     matchdatatype() {
                             #arg1 => colnumber, arg2 => inserted data, arg3 => database name, arg4 => table name
                             arg1=$1
@@ -352,7 +361,8 @@ select option in "Create database" "List database" "Connect to database" "Drop d
   				else
 					echo "Enter the target value: "
 					read conditionVal;
-					valExist=$(awk 'BEGIN{FS=":"}{if ($'$conditionNF'=="'$conditionVal'") print $'$conditionNF'}' "$HOME/database/$connectdb/$tablename" )
+					selectedline=$(awk -F: -v pk=$primaryKey 'NR>2{ if($1==pk) print NR}' $HOME/database/$connectdb/$tablename )
+					valExist=$(awk 'BEGIN{FS=":"}{if (NR>2 && $'$conditionNF'=="'$conditionVal'") print $'$conditionNF'}' "$HOME/database/$connectdb/$tablename" )
     					if [[ $valExist == "" ]]
     					then
       						echo "Value not found!"
@@ -367,12 +377,13 @@ select option in "Create database" "List database" "Connect to database" "Drop d
       						else
 							echo "Enter the new value to be updated: "
 							read newValue;
-							echo $updateNF
 							result=$(matchdatatype $updateNF $newValue $connectdb $tablename)
 							
                                         		if [ $result == "correct_data_type" ] 2>/dev/null; then
-								NR=$(awk 'BEGIN{FS=":"}{if ($'$conditionNF' == "'$conditionVal'") print NR}' "$HOME/database/$connectdb/$tablename" ) 
+								NR=$(awk 'BEGIN{FS=":"} NR>2{if ($'$conditionNF' == "'$conditionVal'") print NR}' "$HOME/database/$connectdb/$tablename" ) 
+								echo $NR
         							oldValue=$(awk 'BEGIN{FS=":"}{if(NR=='$NR'){for(i=1;i<=NF;i++){if(i=='$updateNF') print $i}}}' "$HOME/database/$connectdb/$tablename" )
+        							#echo $oldValue
         							sed -i ''$NR's/'$oldValue'/'$newValue'/g' "$HOME/database/$connectdb/$tablename"
 								echo "Row Updated Successfully"
 							else
@@ -385,7 +396,20 @@ select option in "Create database" "List database" "Connect to database" "Drop d
 				echo "$HOME/database/$connectdb/$tablename doesn't exist";
 			fi
 			;;
-                        
+
+                    ### Table Option 8: Exit ###
+                    8)
+                        exit
+                        ;;
+
+                    *) echo "Enter a valid option" ;;
+                    esac
+                    REPLY=
+                done
+            fi
+        done
+        ;;
+
     #### DELETE Database ###
     4)
         echo "Enter a database name to delete, or enter exit to return to main menu"
