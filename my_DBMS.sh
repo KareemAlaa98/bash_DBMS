@@ -56,7 +56,7 @@ select option in "Create database" "List database" "Connect to database" "Drop d
             elif [[ $connectdb = "exit" ]]; then
                 break
             else
-            
+
                 ### Table options and settings ###
                 select choice in "Create table" "List tables" "Drop table" "Insert into table" "Select from table" "Delete from table" "Update table" "Exit"; do
                     case $REPLY in
@@ -134,30 +134,25 @@ select option in "Create database" "List database" "Connect to database" "Drop d
                                 done
                             fi
                         done
-                        
+
                         ;;
 
+                    2) ### Table Option 2: List tables ###
 
+                        ls $HOME/database/$connectdb
+                        ;;
 
- 			
- 			2) ### Table Option 2: List tables ###
- 			
-                    	ls $HOME/database/$connectdb
- 			;;
- 			
- 			
- 			3) ### Table Option 3: Drop table ###
- 			ls $HOME/database/$connectdb
-    			echo "Table name to drop: "
-    			read tablename
-    			if [ -f $HOME/database/$connectdb/$tablename ]
-    			then
-        			rm $HOME/database/$connectdb/$tablename 
-        			echo "Table $tablename is dropped successfully"
-    			else
-        		echo "Table doesn't exist"
-    			fi	
- 			;;
+                    3) ### Table Option 3: Drop table ###
+                        ls $HOME/database/$connectdb
+                        echo "Table name to drop: "
+                        read tablename
+                        if [ -f $HOME/database/$connectdb/$tablename ]; then
+                            rm $HOME/database/$connectdb/$tablename
+                            echo "Table $tablename is dropped successfully"
+                        else
+                            echo "Table doesn't exist"
+                        fi
+                        ;;
                     4) ### Table Option 4: Insert into table ###
                         ######### Validate inserted data type function ############
                         matchdatatype() {
@@ -215,7 +210,7 @@ select option in "Create database" "List database" "Connect to database" "Drop d
                                         fi
                                     else
                                         result=$(matchdatatype $y $data_to_insert $connectdb $tbl_to_insert_into)
-                                        if [ $result == "correct_data_type" ]; then
+                                        if [ $result == "correct_data_type" ] 2>/dev/null; then
                                             # Check if Primary key is Unique
                                             if [ $y -eq 1 ]; then
                                                 isnotunique=$(awk -F: -v pk=$data_to_insert 'NR>2{ if($1==pk) print "exists"}' $HOME/database/$connectdb/$tbl_to_insert_into)
@@ -291,77 +286,70 @@ select option in "Create database" "List database" "Connect to database" "Drop d
                             fi
                         done
                         ;;
-			6) ### Table Option 6: Delete from table ###
-                    	echo "Enter the table name to delete from: "
-    			read tablename
+                    6) ### Table Option 6: Delete from table ###
+                        echo "Enter the table name to delete from: "
+                        read tablename
 
-    			if [ -f $HOME/database/$connectdb/$tablename ]
-    			then
-        			echo "Enter the primary key value of the record you want to delete:"
-        			read primaryKey
+                        if [ -f $HOME/database/$connectdb/$tablename ]; then
+                            echo "Enter the primary key value of the record you want to delete:"
+                            read primaryKey
 
-        		if [ ! -z $primaryKey ]
-        		then
-				echo "`awk 'BEGIN{FS=":"} {print $1}' "$HOME/database/$connectdb/$tablename" | grep "\b$primaryKey\b"`"
-            			if [[ $primaryKey = "`awk 'BEGIN{FS=":"} {print $1}' "$HOME/database/$connectdb/$tablename" | grep "\b$primaryKey\b"`" ]]
-            			then
-                			NR=`awk 'BEGIN{FS="|"}{if ($1=="'$primaryKey'") print NR}' "$HOME/database/$connectdb/$tablename"`
-                			sed -i ''$NR'd' "$HOME/database/$connectdb/$tablename"
-                			echo "Record deleted successfully"
-            			else
-                			echo "Primary key not exist!"
-            			fi
-        		else
-            			echo "Primary key not inserted!"
-        		fi    
-    			else
-        			echo "Table $HOME/database/$connectdb/$tablename doesn't exist!"
-    			fi
-    			;;
+                            if [ ! -z $primaryKey ]; then
+                                echo "$(awk 'BEGIN{FS=":"} {print $1}' "$HOME/database/$connectdb/$tablename" | grep "\b$primaryKey\b")"
+                                if [[ $primaryKey = "$(awk 'BEGIN{FS=":"} {print $1}' "$HOME/database/$connectdb/$tablename" | grep "\b$primaryKey\b")" ]]; then
+                                    NR=$(awk 'BEGIN{FS="|"}{if ($1=="'$primaryKey'") print NR}' "$HOME/database/$connectdb/$tablename")
+                                    sed -i ''$NR'd' "$HOME/database/$connectdb/$tablename"
+                                    echo "Record deleted successfully"
+                                else
+                                    echo "Primary key not exist!"
+                                fi
+                            else
+                                echo "Primary key not inserted!"
+                            fi
+                        else
+                            echo "Table $HOME/database/$connectdb/$tablename doesn't exist!"
+                        fi
+                        ;;
                     7) ### Table Option 7: Update table ###
-			echo "Enter the table name to edit: "
-    			read tablename
-    	
-    			if [ -f $HOME/database/$connectdb/$tablename ];
-    			then
-				echo "Columns : `awk -F':' '{if(NR==2){print $0}}' "$HOME/database/$connectdb/$tablename"`";
-				echo "Choose target column of where condition: "
-				read conditionCol;
-				conditionNF=$(awk 'BEGIN{FS=":"}{if(NR==2){for(i=1;i<=NF;i++){if($i=="'$conditionCol'") print i}}}' "$HOME/database/$connectdb/$tablename")
-				echo "$HOME/database/$connectdb/$tablename"
-				if [[ $conditionNF == "" ]]
-  				then
-    					echo "Field not found!"
+                        echo "Enter the table name to edit: "
+                        read tablename
 
-  				else
-					echo "Enter the target value: "
-					read conditionVal;
-					valExist=$(awk 'BEGIN{FS=":"}{if ($'$conditionNF'=="'$conditionVal'") print $'$conditionNF'}' "$HOME/database/$connectdb/$tablename" )
-    					if [[ $valExist == "" ]]
-    					then
-      						echo "Value not found!"
-    					else
-						echo "Enter the column to be updated: "
-						read updatedcol;
-	      					updateNF=$(awk 'BEGIN{FS=":"}{if(NR==2){for(i=1;i<=NF;i++){if($i=="'$updatedcol'") print i}}}' "$HOME/database/$connectdb/$tablename" )
-	      					if [[ $updateNF == "" ]]
-      						then
-        						echo "Field not found!"
+                        if [ -f $HOME/database/$connectdb/$tablename ]; then
+                            echo "Columns : $(awk -F':' '{if(NR==2){print $0}}' "$HOME/database/$connectdb/$tablename")"
+                            echo "Choose target column of where condition: "
+                            read conditionCol
+                            conditionNF=$(awk 'BEGIN{FS=":"}{if(NR==2){for(i=1;i<=NF;i++){if($i=="'$conditionCol'") print i}}}' "$HOME/database/$connectdb/$tablename")
+                            echo "$HOME/database/$connectdb/$tablename"
+                            if [[ $conditionNF == "" ]]; then
+                                echo "Field not found!"
 
-      						else
-							echo "Enter the new value to be updated: "
-							read newValue;
-							NR=$(awk 'BEGIN{FS=":"}{if ($'$conditionNF' == "'$conditionVal'") print NR}' "$HOME/database/$connectdb/$tablename" ) 
-        						oldValue=$(awk 'BEGIN{FS=":"}{if(NR=='$NR'){for(i=1;i<=NF;i++){if(i=='$updateNF') print $i}}}' "$HOME/database/$connectdb/$tablename" )
-        						sed -i ''$NR's/'$oldValue'/'$newValue'/g' "$HOME/database/$connectdb/$tablename"
-							echo "Row Updated Successfully"
-						fi
-					fi
-				fi
-			else
-				echo "$HOME/database/$connectdb/$tablename doesn't exist";
-			fi
-			;;
+                            else
+                                echo "Enter the target value: "
+                                read conditionVal
+                                valExist=$(awk 'BEGIN{FS=":"}{if ($'$conditionNF'=="'$conditionVal'") print $'$conditionNF'}' "$HOME/database/$connectdb/$tablename")
+                                if [[ $valExist == "" ]]; then
+                                    echo "Value not found!"
+                                else
+                                    echo "Enter the column to be updated: "
+                                    read updatedcol
+                                    updateNF=$(awk 'BEGIN{FS=":"}{if(NR==2){for(i=1;i<=NF;i++){if($i=="'$updatedcol'") print i}}}' "$HOME/database/$connectdb/$tablename")
+                                    if [[ $updateNF == "" ]]; then
+                                        echo "Field not found!"
+
+                                    else
+                                        echo "Enter the new value to be updated: "
+                                        read newValue
+                                        NR=$(awk 'BEGIN{FS=":"}{if ($'$conditionNF' == "'$conditionVal'") print NR}' "$HOME/database/$connectdb/$tablename")
+                                        oldValue=$(awk 'BEGIN{FS=":"}{if(NR=='$NR'){for(i=1;i<=NF;i++){if(i=='$updateNF') print $i}}}' "$HOME/database/$connectdb/$tablename")
+                                        sed -i ''$NR's/'$oldValue'/'$newValue'/g' "$HOME/database/$connectdb/$tablename"
+                                        echo "Row Updated Successfully"
+                                    fi
+                                fi
+                            fi
+                        else
+                            echo "$HOME/database/$connectdb/$tablename doesn't exist"
+                        fi
+                        ;;
 
                     ### Table Option 8: Exit ###
                     8)
