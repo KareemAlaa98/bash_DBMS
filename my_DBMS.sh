@@ -310,7 +310,81 @@ select option in "Create database" "List database" "Connect to database" "Drop d
                             echo "Table $HOME/database/$connectdb/$tablename doesn't exist!"
                         fi
                         ;;
-                    7) ### Table Option 7: Update table ###
+                    7) ### Table Option 7: Update table ###                    
+                    matchdatatype() {
+                            #arg1 => colnumber, arg2 => inserted data, arg3 => database name, arg4 => table name
+                            arg1=$1
+                            arg2=$2
+                            arg3=$3
+                            arg4=$4
+                            colty=$(awk -F: -v input=$arg1 'NR==1{print $input}' $HOME/database/$arg3/$arg4)
+
+                            if [[ $colty -eq 0 ]]; then
+                                if [[ ! $arg2 =~ $fieldreg ]]; then
+                                    echo "----enter a valid datatype (string)----"
+                                else
+                                    echo "correct_data_type"
+                                fi
+                            else
+                                if [[ ! $arg2 =~ $fieldnumreg ]]; then
+                                    echo "-----enter a valid datatype (number)--------"
+                                else
+                                    echo "correct_data_type"
+                                fi
+                            fi
+                        }
+                    
+                    
+			echo "Enter the table name to edit: "
+    			read tablename
+    	
+    			if [ -f $HOME/database/$connectdb/$tablename ];
+    			then
+				echo "Columns : `awk -F':' '{if(NR==2){print $0}}' "$HOME/database/$connectdb/$tablename"`";
+				echo "Choose target column of where condition: "
+				read conditionCol;
+				conditionNF=$(awk 'BEGIN{FS=":"}{if(NR==2){for(i=1;i<=NF;i++){if($i=="'$conditionCol'") print i}}}' "$HOME/database/$connectdb/$tablename")
+				echo "$HOME/database/$connectdb/$tablename"
+				if [[ $conditionNF == "" ]]
+  				then
+    					echo "Field not found!"
+
+  				else
+					echo "Enter the target value: "
+					read conditionVal;
+					valExist=$(awk 'BEGIN{FS=":"}{if ($'$conditionNF'=="'$conditionVal'") print $'$conditionNF'}' "$HOME/database/$connectdb/$tablename" )
+    					if [[ $valExist == "" ]]
+    					then
+      						echo "Value not found!"
+    					else
+						echo "Enter the column to be updated: "
+						read updatedcol;
+	      					updateNF=$(awk 'BEGIN{FS=":"}{if(NR==2){for(i=1;i<=NF;i++){if($i=="'$updatedcol'") print i}}}' "$HOME/database/$connectdb/$tablename" )
+	      					if [[ $updateNF == "" ]]
+      						then
+        						echo "Field not found!"
+
+      						else
+							echo "Enter the new value to be updated: "
+							read newValue;
+							echo $updateNF
+							result=$(matchdatatype $updateNF $newValue $connectdb $tablename)
+							
+                                        		if [ $result == "correct_data_type" ] 2>/dev/null; then
+								NR=$(awk 'BEGIN{FS=":"}{if ($'$conditionNF' == "'$conditionVal'") print NR}' "$HOME/database/$connectdb/$tablename" ) 
+        							oldValue=$(awk 'BEGIN{FS=":"}{if(NR=='$NR'){for(i=1;i<=NF;i++){if(i=='$updateNF') print $i}}}' "$HOME/database/$connectdb/$tablename" )
+        							sed -i ''$NR's/'$oldValue'/'$newValue'/g' "$HOME/database/$connectdb/$tablename"
+								echo "Row Updated Successfully"
+							else
+								echo "Wrong data type"
+							fi
+						fi
+					fi
+				fi
+			else
+				echo "$HOME/database/$connectdb/$tablename doesn't exist";
+			fi
+			;;
                         echo "Enter the table name to edit: "
                         read tablename
 
